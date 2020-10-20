@@ -7,7 +7,8 @@ from keras.models import Model
 import struct
 import cv2
 
-np.set_printoptions(threshold=np.nan)
+#np.set_printoptions(threshold=np.nan)
+np.set_printoptions(threshold=30)
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
@@ -257,7 +258,9 @@ def make_yolov3_model():
     return model
 
 def preprocess_input(image, net_h, net_w):
-    new_h, new_w, _ = image.shape
+    #new_h, new_w, _ = image.shape
+    new_h = 480
+    new_w = 640
 
     # determine the new size of the image
     if (float(net_w)/new_w) < (float(net_h)/new_h):
@@ -380,7 +383,7 @@ def draw_boxes(image, boxes, labels, obj_thresh):
 
 def _main_(args):
     weights_path = args.weights
-    image_path   = args.image
+    #image_path   = args.image
 
     # set some parameters
     net_h, net_w = 416, 416
@@ -401,9 +404,29 @@ def _main_(args):
     yolov3 = make_yolov3_model()
 
     # load the weights trained on COCO into the model
-    weight_reader = WeightReader('yolov3.weights')
+    weight_reader = WeightReader(weights_path)
     weight_reader.load_weights(yolov3)
 
+    # set webcam
+    cap = cv2.VideoCapture(0)
+    while(True):
+        ret, image = cap.read()
+        #image_h, image_w, _ = image.shape
+        new_image = preprocess_input(image, net_h, net_w)
+        yolos = yolov3.predict(new_image)
+        boxes = []
+        for i in range(len(yolos)):
+            boxes += decode_netout(yolos[i][0], anchors[i], obj_thresh, nms_thresh, net_h, net_w)
+        correct_yolo_boxes(boxes, 480, 640, net_h, net_w)
+        do_nms(boxes, nms_thresh)
+        draw_boxes(image, boxes, labels, obj_thresh)
+        cv2.imshow('frame',image)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+    cap.release()
+    cv2.destroyAllWindows()
+        
+'''
     # preprocess the image
     image = cv2.imread(image_path)
     image_h, image_w, _ = image.shape
@@ -428,7 +451,7 @@ def _main_(args):
  
     # write the image with bounding boxes to file
     cv2.imwrite(image_path[:-4] + '_detected' + image_path[-4:], (image).astype('uint8')) 
-
+'''
 if __name__ == '__main__':
     args = argparser.parse_args()
     _main_(args)
