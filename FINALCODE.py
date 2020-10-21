@@ -217,7 +217,7 @@ labels = ["person", "bicycle", "car", "motorbike", "aeroplane", "bus", "train", 
 
 
 #set webcam
-cam = cv2.VideoCapture(0)
+cam = cv2.VideoCapture(1)
 
 
 # load yolov3 model
